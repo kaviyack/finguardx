@@ -1,0 +1,503 @@
+{
+  "info": {
+    "name": "FinGuardX API",
+    "_postman_id": "finguardx-v1-collection",
+    "description": "Complete API test collection for FinGuardX — Multi-Tenant SaaS Platform for Transaction Risk Assessment.\n\nSRS §6.5 compliance: Postman REST API testing and endpoint validation.\n\n**Setup:**\n1. Set `base_url` variable to `http://localhost:8080`\n2. Run the 'Auth - Login' request first (token is auto-saved)\n3. Run remaining requests in order, or use Collection Runner\n\n**Variables used:**\n- `base_url` — backend URL\n- `access_token` — auto-set on login\n- `refresh_token` — auto-set on login\n- `last_tx_id` — auto-set on transaction ingest\n- `last_alert_id` — auto-set on alert list",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",      "value": "http://localhost:8080", "type": "string" },
+    { "key": "access_token",  "value": "", "type": "string" },
+    { "key": "refresh_token", "value": "", "type": "string" },
+    { "key": "last_tx_id",    "value": "", "type": "string" },
+    { "key": "last_alert_id", "value": "", "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "0. Health",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/health"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Status ok', () => pm.expect(pm.response.json().status).to.eql('ok'));",
+              "pm.test('Model loaded', () => pm.expect(pm.response.json().model_loaded).to.be.true);"
+            ]}
+          }]
+        },
+        {
+          "name": "GET /api/tenants (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/tenants"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has tenants array', () => pm.expect(pm.response.json().tenants).to.be.an('array'));",
+              "pm.test('At least 3 tenants', () => pm.expect(pm.response.json().tenants.length).to.be.at.least(3));"
+            ]}
+          }]
+        }
+      ]
+    },
+
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "POST /api/auth/login — valid",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"analyst@axiombank.com\",\n  \"password\": \"password123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "const d = pm.response.json();",
+                "pm.test('Has access_token', () => pm.expect(d.access_token).to.be.a('string'));",
+                "pm.test('Has refresh_token', () => pm.expect(d.refresh_token).to.be.a('string'));",
+                "pm.test('Token type Bearer', () => pm.expect(d.token_type).to.eql('Bearer'));",
+                "pm.test('User info present', () => pm.expect(d.user).to.be.an('object'));",
+                "pm.test('Role present', () => pm.expect(d.user.role).to.be.a('string'));",
+                "pm.collectionVariables.set('access_token', d.access_token);",
+                "pm.collectionVariables.set('refresh_token', d.refresh_token);"
+              ]}
+            }
+          ]
+        },
+        {
+          "name": "POST /api/auth/login — wrong password (expect 401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"analyst@axiombank.com\",\n  \"password\": \"wrongpassword\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));",
+            "pm.test('Error message present', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/auth/login — missing fields (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/auth/me",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has role', () => pm.expect(pm.response.json().role).to.be.a('string'));",
+            "pm.test('Has tenant', () => pm.expect(pm.response.json().tenant).to.be.a('string'));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/auth/me — no token (expect 401)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/me"
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/auth/refresh",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/auth/refresh",
+            "body": { "mode": "raw", "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('New access token', () => pm.expect(pm.response.json().access_token).to.be.a('string'));",
+            "pm.collectionVariables.set('access_token', pm.response.json().access_token);"
+          ]}}]
+        },
+        {
+          "name": "POST /api/auth/logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/auth/logout",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": [
+                "// Re-login before logout test to ensure fresh token",
+                "pm.sendRequest({ url: pm.collectionVariables.get('base_url') + '/api/auth/login', method: 'POST', header: {'Content-Type': 'application/json'}, body: { mode: 'raw', raw: JSON.stringify({email:'analyst@axiombank.com', password:'password123'}) }}, (err, res) => { const d = res.json(); pm.collectionVariables.set('access_token', d.access_token); pm.collectionVariables.set('refresh_token', d.refresh_token); });"
+              ]}
+            },
+            { "listen": "test", "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}}
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "2. Transactions",
+      "item": [
+        {
+          "name": "POST /api/transactions — valid",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/api/transactions",
+            "body": { "mode": "raw", "raw": "{\n  \"customer_external_id\": \"USR-POSTMAN-001\",\n  \"amount\": 5200.00,\n  \"tx_type\": \"ACH Transfer\",\n  \"merchant_category\": \"Retail\",\n  \"location_flag\": \"Same country\",\n  \"hour_of_day\": 14\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "const d = pm.response.json();",
+            "pm.test('Has transaction id', () => pm.expect(d.transaction.id).to.be.a('string'));",
+            "pm.test('Status is PENDING', () => pm.expect(d.transaction.status).to.eql('PENDING'));",
+            "pm.collectionVariables.set('last_tx_id', d.transaction.id);"
+          ]}}]
+        },
+        {
+          "name": "POST /api/transactions — missing fields (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/api/transactions",
+            "body": { "mode": "raw", "raw": "{\n  \"customer_external_id\": \"USR-TEST\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));",
+            "pm.test('Error lists missing fields', () => pm.expect(pm.response.json().error).to.include('Missing'));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/transactions — negative amount (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/api/transactions",
+            "body": { "mode": "raw", "raw": "{\n  \"customer_external_id\": \"USR-TEST\",\n  \"amount\": -500,\n  \"tx_type\": \"Card Payment\",\n  \"merchant_category\": \"Retail\",\n  \"location_flag\": \"Same country\",\n  \"hour_of_day\": 12\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/transactions — no auth (expect 401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/transactions",
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/transactions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/transactions",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json();",
+            "pm.test('Has transactions array', () => pm.expect(d.transactions).to.be.an('array'));",
+            "pm.test('Has total', () => pm.expect(d.total).to.be.a('number'));",
+            "pm.test('Has limit/offset', () => { pm.expect(d.limit).to.be.a('number'); pm.expect(d.offset).to.be.a('number'); });"
+          ]}}]
+        },
+        {
+          "name": "GET /api/transactions?risk_level=High",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/transactions?risk_level=High", "query": [{ "key": "risk_level", "value": "High" }] },
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('All returned are High risk', () => { pm.response.json().transactions.forEach(t => pm.expect(t.risk_level).to.eql('High')); });"
+          ]}}]
+        },
+        {
+          "name": "GET /api/transactions/{id}",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/transactions/{{last_tx_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('ID matches', () => pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('last_tx_id')));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/transactions/FAKE-ID (expect 404)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/transactions/TXN-DOES-NOT-EXIST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 404', () => pm.response.to.have.status(404));"
+          ]}}]
+        }
+      ]
+    },
+
+    {
+      "name": "3. Risk Scoring",
+      "item": [
+        {
+          "name": "POST /api/risk-score/evaluate — high risk",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/api/risk-score/evaluate",
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 48200,\n  \"tx_type\": \"Wire Transfer\",\n  \"merchant_category\": \"Crypto Exchange\",\n  \"location_flag\": \"High-risk jurisdiction\",\n  \"hour_of_day\": 2,\n  \"customer_external_id\": \"USR-2291\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json();",
+            "pm.test('Score in 0-100', () => { pm.expect(d.score).to.be.at.least(0); pm.expect(d.score).to.be.at.most(100); });",
+            "pm.test('Has risk_level', () => pm.expect(['Low','Medium','High']).to.include(d.risk_level));",
+            "pm.test('Has factors', () => pm.expect(d.factors).to.be.an('object'));",
+            "pm.test('Has response_ms', () => pm.expect(d.response_ms).to.be.a('number'));",
+            "pm.test('SLA: response < 2000ms', () => pm.expect(pm.response.responseTime).to.be.below(2000));",
+            "pm.collectionVariables.set('last_tx_id', d.transaction_id);"
+          ]}}]
+        },
+        {
+          "name": "POST /api/risk-score/evaluate — low risk",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/api/risk-score/evaluate",
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 320,\n  \"tx_type\": \"Card Payment\",\n  \"merchant_category\": \"Utilities\",\n  \"location_flag\": \"Same country\",\n  \"hour_of_day\": 9,\n  \"customer_external_id\": \"USR-3302\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Low risk expected', () => pm.expect(pm.response.json().risk_level).to.eql('Low'));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/risk-score/evaluate — no auth (expect 401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/risk-score/evaluate",
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/risk-score/{id}",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/risk-score/{{last_tx_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json();",
+            "pm.test('Has score', () => pm.expect(d.score).to.be.a('number'));",
+            "pm.test('Has risk_level', () => pm.expect(d.risk_level).to.be.a('string'));",
+            "pm.test('Has scored_at', () => pm.expect(d.scored_at).to.be.a('string'));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/risk-score/FAKE (expect 404)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/risk-score/TXN-FAKE-99999",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 404', () => pm.response.to.have.status(404));"
+          ]}}]
+        }
+      ]
+    },
+
+    {
+      "name": "4. Credit Analysis",
+      "item": [
+        {
+          "name": "GET /api/credit-analysis/USR-4821",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/credit-analysis/USR-4821",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json();",
+            "pm.test('confidence_score 0-100', () => { pm.expect(d.confidence_score).to.be.at.least(0); pm.expect(d.confidence_score).to.be.at.most(100); });",
+            "pm.test('Has repayment_rate', () => pm.expect(d.repayment_rate).to.be.a('number'));",
+            "pm.test('Has recommendation', () => pm.expect(d.recommendation).to.be.a('string'));",
+            "pm.test('Has status', () => pm.expect(['Good Standing','Watch List','High Risk']).to.include(d.status));",
+            "pm.test('Has score_history[12]', () => pm.expect(d.score_history).to.have.lengthOf(12));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/credit-analysis/USR-2291 (high-risk user)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/credit-analysis/USR-2291",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('High risk user scores low', () => pm.expect(pm.response.json().confidence_score).to.be.below(50));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/credit-analysis/USR-4821 — no auth (expect 401)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/credit-analysis/USR-4821"
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}]
+        }
+      ]
+    },
+
+    {
+      "name": "5. Alerts",
+      "item": [
+        {
+          "name": "GET /api/alerts",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/alerts",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json();",
+            "pm.test('Has alerts array', () => pm.expect(d.alerts).to.be.an('array'));",
+            "pm.test('Has total', () => pm.expect(d.total).to.be.a('number'));",
+            "if (d.alerts.length > 0) {",
+            "  pm.collectionVariables.set('last_alert_id', d.alerts[0].id);",
+            "  pm.test('Alert has required fields', () => {",
+            "    ['id','transaction_id','risk_score','severity','status'].forEach(f => pm.expect(d.alerts[0]).to.have.property(f));",
+            "  });",
+            "}"
+          ]}}]
+        },
+        {
+          "name": "GET /api/alerts?status=ACTIVE",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/alerts?status=ACTIVE", "query": [{ "key": "status", "value": "ACTIVE" }] },
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('All alerts are ACTIVE', () => { pm.response.json().alerts.forEach(a => pm.expect(a.status).to.eql('ACTIVE')); });"
+          ]}}]
+        },
+        {
+          "name": "POST /api/alerts/{id}/acknowledge",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/api/alerts/{{last_alert_id}}/acknowledge",
+            "body": { "mode": "raw", "raw": "{\n  \"action\": \"ACKNOWLEDGED\",\n  \"notes\": \"Reviewed and confirmed — monitoring\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status updated', () => pm.expect(pm.response.json().alert.status).to.eql('ACKNOWLEDGED'));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/alerts — no auth (expect 401)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/alerts"
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}]
+        }
+      ]
+    },
+
+    {
+      "name": "6. Dashboard",
+      "item": [
+        {
+          "name": "GET /api/dashboard/stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/dashboard/stats",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json();",
+            "pm.test('Has total_transactions', () => pm.expect(d.total_transactions).to.be.a('number'));",
+            "pm.test('Has high_risk_count', () => pm.expect(d.high_risk_count).to.be.a('number'));",
+            "pm.test('Has avg_risk_score', () => pm.expect(d.avg_risk_score).to.be.a('number'));",
+            "pm.test('Has active_alerts', () => pm.expect(d.active_alerts).to.be.a('number'));",
+            "pm.test('Has distribution', () => pm.expect(d.distribution).to.be.an('object'));",
+            "pm.test('Dashboard SLA: response < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+          ]}}]
+        }
+      ]
+    }
+
+  ]
+}

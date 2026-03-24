@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FinGuardX — Transaction Risk Assessment</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg0:#080c10;--bg1:#0d1117;--bg2:#111820;--bg3:#171f2a;--bg4:#1e2836;--border:rgba(255,255,255,0.06);--border-bright:rgba(255,255,255,0.12);--accent:#00d4aa;--accent2:#0096ff;--danger:#ff4d6d;--warn:#ffb627;--text0:#f0f4f8;--text1:#8fa3b8;--text2:#4a6070;--font-d:'Syne',sans-serif;--font-b:'DM Sans',sans-serif;--font-m:'DM Mono',monospace;--r:8px;--rl:12px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg0);color:var(--text0);font-family:var(--font-b);font-size:14px;overflow:hidden}
+.shell{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.logo{padding:24px 20px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-mark{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-weight:800;font-size:14px;color:#000;flex-shrink:0}
+.logo-text{font-family:var(--font-d);font-weight:700;font-size:16px;letter-spacing:-.3px}
+.logo-text span{color:var(--accent)}
+.nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:2px}
+.nav-sec{font-size:10px;font-weight:500;color:var(--text2);letter-spacing:1px;text-transform:uppercase;padding:12px 8px 6px;font-family:var(--font-d)}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r);cursor:pointer;color:var(--text1);font-size:13px;transition:all .15s;position:relative}
+.ni:hover{background:var(--bg3);color:var(--text0)}
+.ni.active{background:rgba(0,212,170,0.1);color:var(--accent);font-weight:500}
+.ni.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+.ni svg{width:16px;height:16px;opacity:.7;flex-shrink:0}
+.ni.active svg{opacity:1}
+.nbadge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;font-family:var(--font-m)}
+.sb-foot{padding:16px;border-top:1px solid var(--border)}
+.tenant-pill{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;display:flex;align-items:center;gap:10px}
+.t-av{width:28px;height:28px;border-radius:6px;background:#1a3a5c;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent2);font-family:var(--font-m);flex-shrink:0}
+.t-info{flex:1;min-width:0}
+.t-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-role{font-size:10px;color:var(--text2)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;background:var(--bg1);flex-shrink:0}
+.tb-title{font-family:var(--font-d);font-size:16px;font-weight:600;flex:1}
+.tb-sub{font-size:12px;color:var(--text2);margin-top:1px}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:var(--font-b);transition:all .15s}
+.btn-ghost{background:transparent;color:var(--text1);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg3);color:var(--text0);border-color:var(--border-bright)}
+.btn-acc{background:var(--accent);color:#001a14;font-weight:600}
+.btn-acc:hover{background:#00f0c0}
+.btn-danger{background:rgba(255,77,109,.15);color:var(--danger);border:1px solid rgba(255,77,109,.3)}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.content{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
+.screen{display:none;flex-direction:column;gap:20px}
+.screen.active{display:flex}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s}
+.stat-card:hover{border-color:var(--border-bright)}
+.stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;font-family:var(--font-d);font-weight:600;margin-bottom:10px}
+.stat-val{font-family:var(--font-d);font-size:28px;font-weight:800;line-height:1;margin-bottom:6px}
+.stat-sub{font-size:11px;color:var(--text2)}
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;font-family:var(--font-m)}
+.bg{background:rgba(0,212,170,.12);color:var(--accent)}
+.br{background:rgba(255,77,109,.12);color:var(--danger)}
+.by{background:rgba(255,182,39,.12);color:var(--warn)}
+.bb{background:rgba(0,150,255,.12);color:var(--accent2)}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.ph{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.pt{font-family:var(--font-d);font-size:13px;font-weight:600}
+.pb{padding:20px}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.7px;padding:10px 14px;text-align:left;font-family:var(--font-d);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text1);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02);color:var(--text0);cursor:pointer}
+.txid{font-family:var(--font-m);font-size:12px;color:var(--accent2)}
+.txamt{font-family:var(--font-m);color:var(--text0);font-weight:500}
+.rb{display:flex;align-items:center;gap:10px}
+.rt{flex:1;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;max-width:80px}
+.rf{height:100%;border-radius:3px;transition:width .6s}
+.rn{font-family:var(--font-m);font-size:12px;font-weight:500;width:28px;text-align:right}
+.rl .rf{background:var(--accent)}.rl .rn{color:var(--accent)}
+.rm .rf{background:var(--warn)}.rm .rn{color:var(--warn)}
+.rh .rf{background:var(--danger)}.rh .rn{color:var(--danger)}
+.astrip{background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.2);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:12px;animation:si .3s ease}
+@keyframes si{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.aicon{width:8px;height:8px;border-radius:50%;background:var(--danger);box-shadow:0 0 8px var(--danger);flex-shrink:0}
+.adismiss{background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;padding:0 2px;transition:color .15s}
+.adismiss:hover{color:var(--text0)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.form-group{margin-bottom:16px}
+.fl{font-size:12px;color:var(--text1);margin-bottom:6px;display:block;font-weight:500}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;font-size:14px;color:var(--text0);font-family:var(--font-b);outline:none;transition:border-color .15s}
+.fi:focus{border-color:var(--accent)}
+.fi::placeholder{color:var(--text2)}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.score-result{background:var(--bg3);border-radius:var(--r);padding:20px;margin-top:16px;display:none}
+.score-result.show{display:block}
+.score-big{font-family:var(--font-d);font-size:56px;font-weight:800;line-height:1}
+.sfact{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.sfact-n{font-size:12px;color:var(--text1);display:flex;justify-content:space-between}
+.sfact-b{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.sfact-f{height:100%;border-radius:2px}
+.cring{position:relative;width:120px;height:120px;flex-shrink:0}
+.cring svg{width:100%;height:100%}
+.ccent{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cnum{font-family:var(--font-d);font-size:26px;font-weight:800;line-height:1}
+.clbl{font-size:10px;color:var(--text2);margin-top:2px}
+.mrow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.mrow:last-child{border-bottom:none}
+.mn{font-size:12px;color:var(--text1)}
+.mv{font-family:var(--font-m);font-size:12px;font-weight:500}
+/* Login */
+.login-shell{display:none;position:fixed;inset:0;background:var(--bg0);z-index:200;align-items:center;justify-content:center}
+.login-shell.open{display:flex}
+.login-card{width:400px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:40px}
+.ll{display:flex;align-items:center;gap:10px;margin-bottom:32px}
+.llm{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-weight:800;font-size:16px;color:#000}
+.llt{font-family:var(--font-d);font-size:20px;font-weight:700}
+.llt span{color:var(--accent)}
+.lh{font-family:var(--font-d);font-size:24px;font-weight:700;margin-bottom:6px}
+.ls{font-size:13px;color:var(--text2);margin-bottom:28px}
+.lbtn{width:100%;padding:13px;background:var(--accent);color:#001a14;font-weight:700;font-size:14px;border:none;border-radius:var(--r);cursor:pointer;font-family:var(--font-d);letter-spacing:.3px;margin-top:8px;transition:all .15s}
+.lbtn:hover{background:#00f0c0}
+.lbtn:disabled{opacity:.6;cursor:wait}
+.lft{text-align:center;margin-top:20px;font-size:12px;color:var(--text2)}
+.topt{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r);background:var(--bg3);border:1px solid var(--border);cursor:pointer;margin-bottom:6px;transition:all .15s}
+.topt:hover,.topt.sel{border-color:var(--accent);background:rgba(0,212,170,.06)}
+.lerr{color:var(--danger);font-size:12px;margin-top:8px;text-align:center}
+/* Detail modal */
+.dov{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center}
+.dov.open{display:flex}
+.dm{background:var(--bg2);border:1px solid var(--border-bright);border-radius:16px;width:480px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.dh{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between}
+.db{padding:24px}
+.ds-title{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-d);margin-bottom:12px}
+.drow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.drow:last-child{border-bottom:none}
+.drk{color:var(--text2)}
+.drv{color:var(--text0);font-family:var(--font-m);font-size:12px}
+/* Loading spinner */
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:currentColor;border-radius:50%;animation:sp .6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--text2);gap:8px}
+.dm::-webkit-scrollbar{width:4px}
+.dm::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-shell open" id="loginShell">
+  <div class="login-card">
+    <div class="ll"><div class="llm">FG</div><div class="llt">Fin<span>Guard</span>X</div></div>
+    <div class="lh">Sign in</div>
+    <div class="ls">Access your risk assessment platform</div>
+    <div style="margin-bottom:16px">
+      <label class="fl">Select organization</label>
+      <div id="tenantList"><div class="loading"><span class="spin"></span> Loading tenants…</div></div>
+    </div>
+    <div class="form-group">
+      <label class="fl">Email</label>
+      <input class="fi" id="lEmail" type="email" placeholder="analyst@axiombank.com" value="analyst@axiombank.com"/>
+    </div>
+    <div class="form-group">
+      <label class="fl">Password</label>
+      <input class="fi" id="lPwd" type="password" placeholder="••••••••" value="password123"/>
+    </div>
+    <div class="lerr" id="lErr"></div>
+    <button class="lbtn" id="lBtn" onclick="doLogin()">Sign in to FinGuardX</button>
+    <div class="lft">Session secured via JWT · <span style="color:var(--accent)">Tenant isolation active</span></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="shell" id="appShell" style="display:none">
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-mark">FG</div><div class="logo-text">Fin<span>Guard</span>X</div></div>
+    <nav class="nav">
+      <div class="nav-sec">Monitor</div>
+      <div class="ni active" onclick="goTo('dashboard',this)">
+        <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" opacity=".5"/></svg>
+        Dashboard
+      </div>
+      <div class="ni" onclick="goTo('transactions',this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Transactions
+      </div>
+      <div class="ni" onclick="goTo('alerts',this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 1a5 5 0 0 1 5 5v3l1 2H2l1-2V6a5 5 0 0 1 5-5z" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.3"/></svg>
+        Alerts <span class="nbadge" id="alertBadge" style="display:none">0</span>
+      </div>
+      <div class="nav-sec">Analyse</div>
+      <div class="ni" onclick="goTo('scoring',this)">
+        <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Risk Scoring
+      </div>
+      <div class="ni" onclick="goTo('credit',this)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2 12V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="1.3"/><path d="M5 8h4M5 11h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="5.5" r="1" fill="currentColor"/></svg>
+        Credit Analysis
+      </div>
+    </nav>
+    <div class="sb-foot">
+      <div class="tenant-pill">
+        <div class="t-av" id="sbAv">AB</div>
+        <div class="t-info"><div class="t-name" id="sbName">—</div><div class="t-role" id="sbRole">—</div></div>
+        <svg style="width:14px;height:14px;color:var(--text2);cursor:pointer" viewBox="0 0 16 16" fill="none" onclick="logout()"><path d="M10 3l5 5-5 5M15 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 1H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div><div class="tb-title" id="tbTitle">Dashboard</div><div class="tb-sub" id="tbSub">Real-time transaction risk overview</div></div>
+      <div class="topbar-actions">
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)"><div class="sdot"></div> Live</div>
+        <select id="rangeFilter" style="background:var(--bg3);border:1px solid var(--border);color:var(--text1);padding:7px 10px;border-radius:var(--r);font-size:12px;outline:none;font-family:var(--font-b)" onchange="onRangeChange()">
+          <option>Last 24 hours</option><option>Last 7 days</option><option>Last 30 days</option>
+        </select>
+        <button class="btn btn-acc" onclick="goTo('scoring',document.querySelector('[onclick*=scoring]'))">+ Score Transaction</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="screen active" id="screen-dashboard">
+        <div id="dashAlerts"></div>
+        <div class="stats-row" id="dashStats"><div class="loading" style="grid-column:1/-1"><span class="spin"></span> Loading stats…</div></div>
+        <div class="grid3">
+          <div class="panel">
+            <div class="ph"><div class="pt">Transaction volume · last 12h</div><span class="badge bg">Live</span></div>
+            <div class="pb">
+              <div id="volChart" style="display:flex;align-items:flex-end;gap:4px;height:80px;margin-bottom:8px"></div>
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2);font-family:var(--font-m)"><span>12:00</span><span>14:00</span><span>16:00</span><span>18:00</span><span>20:00</span><span>22:00</span></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><div class="pt">Risk distribution</div></div>
+            <div class="pb" id="riskDist"><div class="loading"><span class="spin"></span></div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><div class="pt">Recent transactions</div><button class="btn btn-ghost" style="font-size:12px;padding:5px 10px" onclick="goTo('transactions',document.querySelector('[onclick*=transactions]'))">View all →</button></div>
+          <div id="dashTxTable"><div class="loading"><span class="spin"></span></div></div>
+        </div>
+      </div>
+
+      <!-- TRANSACTIONS -->
+      <div class="screen" id="screen-transactions">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input placeholder="Search transaction ID or user…" style="background:var(--bg2);border:1px solid var(--border);color:var(--text0);padding:9px 14px;border-radius:var(--r);font-size:13px;outline:none;font-family:var(--font-b);flex:1;min-width:200px" id="txSearch" oninput="filterTx()"/>
+          <select id="txRisk" onchange="filterTx()" style="background:var(--bg2);border:1px solid var(--border);color:var(--text1);padding:9px 12px;border-radius:var(--r);font-size:13px;outline:none;font-family:var(--font-b)">
+            <option value="">All risk levels</option><option>Low</option><option>Medium</option><option>High</option>
+          </select>
+        </div>
+        <div class="panel">
+          <div class="ph"><div class="pt">All transactions <span style="color:var(--text2);font-weight:400;font-size:12px" id="txCount"></span></div></div>
+          <div id="txTableWrap"><div class="loading"><span class="spin"></span></div></div>
+        </div>
+      </div>
+
+      <!-- ALERTS -->
+      <div class="screen" id="screen-alerts">
+        <div class="stats-row" style="grid-template-columns:repeat(3,1fr)" id="alertStats">
+          <div class="loading" style="grid-column:1/-1"><span class="spin"></span></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><div class="pt">Active high-risk alerts</div></div>
+          <div class="pb" id="activeAlerts"><div class="loading"><span class="spin"></span></div></div>
+        </div>
+      </div>
+
+      <!-- RISK SCORING -->
+      <div class="screen" id="screen-scoring">
+        <div class="grid2">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:24px">
+            <div style="font-family:var(--font-d);font-size:15px;font-weight:600;margin-bottom:16px">Submit transaction for scoring</div>
+            <div class="fr2">
+              <div class="form-group"><label class="fl">Amount ($)</label><input class="fi" id="inAmt" type="number" placeholder="5200" value="5200"/></div>
+              <div class="form-group"><label class="fl">Transaction type</label>
+                <select class="fi" id="inType"><option>Wire Transfer</option><option>Card Payment</option><option>ACH Transfer</option><option>Crypto Conversion</option><option>Cash Deposit</option></select>
+              </div>
+            </div>
+            <div class="fr2">
+              <div class="form-group"><label class="fl">User ID</label><input class="fi" id="inUser" value="USR-4821"/></div>
+              <div class="form-group"><label class="fl">Merchant category</label>
+                <select class="fi" id="inCat"><option>Retail</option><option>Travel</option><option>Gambling</option><option>Crypto Exchange</option><option>Utilities</option><option>Healthcare</option></select>
+              </div>
+            </div>
+            <div class="fr2">
+              <div class="form-group"><label class="fl">Location</label>
+                <select class="fi" id="inLoc"><option>Same country</option><option>Cross-border</option><option>High-risk jurisdiction</option></select>
+              </div>
+              <div class="form-group"><label class="fl">Hour of day (0–23)</label><input class="fi" id="inHour" type="number" value="14" min="0" max="23"/></div>
+            </div>
+            <button class="btn btn-acc" id="scoreBtn" style="width:100%;justify-content:center;padding:12px" onclick="doScore()">Evaluate risk →</button>
+            <div class="score-result" id="scoreResult"></div>
+          </div>
+          <div>
+            <div class="panel" style="margin-bottom:14px">
+              <div class="ph"><div class="pt">Scoring model info</div></div>
+              <div class="pb">
+                <div class="mrow"><span class="mn">Algorithm</span><span class="mv">Random Forest</span></div>
+                <div class="mrow"><span class="mn">Training dataset</span><span class="mv">Synthetic (Kaggle-structure)</span></div>
+                <div class="mrow"><span class="mn">Accuracy</span><span class="mv" style="color:var(--accent)">86.05%</span></div>
+                <div class="mrow"><span class="mn">ROC-AUC</span><span class="mv">0.854</span></div>
+                <div class="mrow"><span class="mn">SLA target</span><span class="mv">≤ 2s</span></div>
+                <div class="mrow" style="border:none"><span class="mn">Version</span><span class="mv">v1.0</span></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="ph"><div class="pt">Recent scored</div></div>
+              <div id="recentScored" style="padding:12px 20px;display:flex;flex-direction:column;gap:8px"><div style="color:var(--text2);font-size:12px">No recent scores yet</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CREDIT -->
+      <div class="screen" id="screen-credit">
+        <div style="display:flex;gap:10px;align-items:center">
+          <input id="creditUID" value="USR-4821" style="background:var(--bg2);border:1px solid var(--border);color:var(--text0);padding:9px 14px;border-radius:var(--r);font-size:13px;outline:none;font-family:var(--font-b);width:260px" placeholder="e.g. USR-4821"/>
+          <button class="btn btn-acc" onclick="loadCredit()">Analyse →</button>
+        </div>
+        <div id="creditResult"><div class="loading"><span class="spin"></span></div></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="dov" id="dov" onclick="if(event.target===this)closeDet()">
+  <div class="dm" id="dm"></div>
+</div>
+
+<script>
+// ─── API LAYER ────────────────────────────────────────────────────────────
+// When running via Docker: API_BASE = '' (nginx proxy handles /api/*)
+// When running standalone (file://): API_BASE = 'http://localhost:8080'
+const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:8080' : '';
+
+let TOKEN = null;
+let CURRENT_USER = null;
+let ALL_TX = [];
+let recentScored = [];
+
+async function api(method, path, body=null, auth=true) {
+  const headers = {'Content-Type': 'application/json'};
+  if (auth && TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+  try {
+    const res = await fetch(API_BASE + path, {
+      method, headers,
+      body: body ? JSON.stringify(body) : null
+    });
+    const data = await res.json();
+    if (!res.ok) throw {status: res.status, message: data.error || 'Request failed', data};
+    return data;
+  } catch(e) {
+    if (e.status) throw e;
+    // Backend unreachable — fall back to mock data
+    console.warn('API unreachable, using mock data for', path);
+    throw {status: 0, message: 'Backend offline', offline: true};
+  }
+}
+
+// ─── MOCK DATA FALLBACK (when backend is not running) ────────────────────
+const MOCK_STATS = {
+  total_transactions:12847, high_risk_count:247, medium_risk_count:2753,
+  low_risk_count:9847, avg_risk_score:31.4, active_alerts:3, accuracy_pct:91.2,
+  distribution:{high_pct:1.9, medium_pct:21.4, low_pct:76.6}
+};
+const MOCK_TX = [
+  {id:'TXN-9847',customer_external_id:'USR-2291',amount:48200,tx_type:'Wire Transfer',merchant_category:'Crypto Exchange',location_flag:'High-risk jurisdiction',hour_of_day:2,risk_score:94,risk_level:'High',status:'FLAGGED',submitted_at:'2025-06-01T23:47:00Z'},
+  {id:'TXN-9846',customer_external_id:'USR-0134',amount:1240,tx_type:'Card Payment',merchant_category:'Retail',location_flag:'Same country',hour_of_day:14,risk_score:22,risk_level:'Low',status:'SCORED',submitted_at:'2025-06-01T23:44:00Z'},
+  {id:'TXN-9845',customer_external_id:'USR-5573',amount:8900,tx_type:'ACH Transfer',merchant_category:'Travel',location_flag:'Cross-border',hour_of_day:11,risk_score:61,risk_level:'Medium',status:'SCORED',submitted_at:'2025-06-01T23:41:00Z'},
+  {id:'TXN-9844',customer_external_id:'USR-3302',amount:320,tx_type:'Card Payment',merchant_category:'Utilities',location_flag:'Same country',hour_of_day:9,risk_score:11,risk_level:'Low',status:'SCORED',submitted_at:'2025-06-01T23:38:00Z'},
+  {id:'TXN-9843',customer_external_id:'USR-7741',amount:22500,tx_type:'Crypto Conversion',merchant_category:'Crypto Exchange',location_flag:'High-risk jurisdiction',hour_of_day:3,risk_score:88,risk_level:'High',status:'FLAGGED',submitted_at:'2025-06-01T23:35:00Z'},
+  {id:'TXN-9842',customer_external_id:'USR-4821',amount:5200,tx_type:'ACH Transfer',merchant_category:'Retail',location_flag:'Same country',hour_of_day:14,risk_score:34,risk_level:'Low',status:'SCORED',submitted_at:'2025-06-01T23:31:00Z'},
+  {id:'TXN-9841',customer_external_id:'USR-8810',amount:11000,tx_type:'Wire Transfer',merchant_category:'Gambling',location_flag:'Cross-border',hour_of_day:1,risk_score:78,risk_level:'High',status:'FLAGGED',submitted_at:'2025-06-01T23:28:00Z'},
+  {id:'TXN-9840',customer_external_id:'USR-6620',amount:680,tx_type:'Card Payment',merchant_category:'Healthcare',location_flag:'Same country',hour_of_day:16,risk_score:8,risk_level:'Low',status:'SCORED',submitted_at:'2025-06-01T23:25:00Z'},
+  {id:'TXN-9839',customer_external_id:'USR-1190',amount:3400,tx_type:'ACH Transfer',merchant_category:'Travel',location_flag:'Cross-border',hour_of_day:20,risk_score:47,risk_level:'Medium',status:'SCORED',submitted_at:'2025-06-01T23:20:00Z'},
+  {id:'TXN-9838',customer_external_id:'USR-9901',amount:900,tx_type:'Card Payment',merchant_category:'Retail',location_flag:'Same country',hour_of_day:12,risk_score:19,risk_level:'Low',status:'SCORED',submitted_at:'2025-06-01T23:18:00Z'},
+  {id:'TXN-9837',customer_external_id:'USR-3345',amount:15600,tx_type:'Wire Transfer',merchant_category:'Gambling',location_flag:'High-risk jurisdiction',hour_of_day:23,risk_score:91,risk_level:'High',status:'FLAGGED',submitted_at:'2025-06-01T23:12:00Z'},
+  {id:'TXN-9836',customer_external_id:'USR-5522',amount:420,tx_type:'Card Payment',merchant_category:'Utilities',location_flag:'Same country',hour_of_day:8,risk_score:14,risk_level:'Low',status:'SCORED',submitted_at:'2025-06-01T23:09:00Z'},
+];
+const MOCK_ALERTS = [
+  {id:'ALT-TXN-9847',transaction_id:'TXN-9847',risk_score:94,severity:'critical',status:'ACTIVE',created_at:'2025-06-01T23:47:00Z',transaction:{amount:48200,customer_external_id:'USR-2291',tx_type:'Wire Transfer',merchant_category:'Crypto Exchange',location_flag:'High-risk jurisdiction'}},
+  {id:'ALT-TXN-9843',transaction_id:'TXN-9843',risk_score:88,severity:'critical',status:'ACTIVE',created_at:'2025-06-01T23:35:00Z',transaction:{amount:22500,customer_external_id:'USR-7741',tx_type:'Crypto Conversion',merchant_category:'Crypto Exchange'}},
+  {id:'ALT-TXN-9841',transaction_id:'TXN-9841',risk_score:78,severity:'high',status:'ACTIVE',created_at:'2025-06-01T23:28:00Z',transaction:{amount:11000,customer_external_id:'USR-8810',tx_type:'Wire Transfer',merchant_category:'Gambling'}},
+];
+const MOCK_CREDIT = {
+  'USR-4821':{name:'Jordan Lee',confidence_score:72,repayment_rate:88,avg_transaction:3200,total_transactions:47,anomaly_count:2,activity_pattern:'Regular',status:'Good Standing',recommendation:'Approve with standard terms',score_history:[62,66,70,68,74,72,69,75,72,68,74,72]},
+  'USR-2291':{name:'Alex Romero',confidence_score:28,repayment_rate:41,avg_transaction:24000,total_transactions:12,anomaly_count:7,activity_pattern:'Irregular',status:'High Risk',recommendation:'Decline or require additional verification',score_history:[18,22,28,35,44,52,62,74,81,84,90,96]},
+  'USR-5573':{name:'Sam Chen',confidence_score:61,repayment_rate:74,avg_transaction:5400,total_transactions:33,anomaly_count:3,activity_pattern:'Moderate',status:'Watch List',recommendation:'Review and apply enhanced monitoring',score_history:[55,50,58,56,60,58,52,62,58,55,60,61]},
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────
+const rc = s => s>=70?'rh':s>=40?'rm':'rl';
+const rcol = s => s>=70?'var(--danger)':s>=40?'var(--warn)':'var(--accent)';
+const bc = l => l==='High'?'br':l==='Medium'?'by':'bg';
+const fmt = n => '$'+Number(n).toLocaleString();
+const ts = d => {try{return new Date(d).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}catch{return d}};
+
+function rcl(score) {
+  return `<div class="${rc(score)} rb"><div class="rt"><div class="rf" style="width:${score}%"></div></div><span class="rn">${score}</span></div>`;
+}
+
+// ─── TENANTS (login) ──────────────────────────────────────────────────────
+let selTenant = null;
+async function loadTenants() {
+  try {
+    const d = await api('GET','/api/tenants',null,false);
+    renderTenants(d.tenants);
+  } catch {
+    renderTenants([
+      {code:'AB',name:'Axiom Bank',type:'Commercial Bank'},
+      {code:'NP',name:'NovaPay',type:'Fintech'},
+      {code:'CS',name:'CreditSphere',type:'Lending Platform'},
+    ]);
+  }
+}
+function renderTenants(tenants) {
+  const colors = {AB:'var(--accent2)',NP:'var(--accent)',CS:'#a855f7'};
+  document.getElementById('tenantList').innerHTML = tenants.map((t,i) =>
+    `<div class="topt${i===0?' sel':''}" onclick="selT(this,'${t.code}','${t.name}','${t.type}')">
+      <div style="width:28px;height:28px;border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${colors[t.code]||'var(--text0)'};font-family:var(--font-m);flex-shrink:0">${t.code}</div>
+      <div><div style="font-size:13px;font-weight:500">${t.name}</div><div style="font-size:11px;color:var(--text2)">${t.type}</div></div>
+    </div>`).join('');
+  if (tenants.length) selTenant = tenants[0];
+}
+function selT(el, code, name, type) {
+  document.querySelectorAll('.topt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  selTenant = {code, name, type};
+}
+
+// ─── AUTH ────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('lEmail').value.trim();
+  const pwd   = document.getElementById('lPwd').value;
+  const btn   = document.getElementById('lBtn');
+  const err   = document.getElementById('lErr');
+  err.textContent = '';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Signing in…';
+  try {
+    const d = await api('POST','/api/auth/login',{email,password:pwd},false);
+    TOKEN = d.access_token;
+    CURRENT_USER = d.user;
+    initApp();
+  } catch(e) {
+    if (e.offline) {
+      // Demo mode: bypass auth
+      TOKEN = 'demo-token';
+      CURRENT_USER = {name: selTenant?.name+' Analyst', role:'ANALYST', tenant: selTenant?.name||'Demo', id:'u0'};
+      initApp();
+    } else {
+      err.textContent = e.message || 'Login failed. Check credentials.';
+      btn.disabled = false;
+      btn.textContent = 'Sign in to FinGuardX';
+    }
+  }
+}
+
+function initApp() {
+  document.getElementById('loginShell').classList.remove('open');
+  document.getElementById('appShell').style.display = 'flex';
+  document.getElementById('sbName').textContent = CURRENT_USER.tenant || selTenant?.name || '—';
+  document.getElementById('sbRole').textContent = CURRENT_USER.role || '—';
+  document.getElementById('sbAv').textContent = selTenant?.code || '??';
+  loadDashboard();
+  loadTransactions();
+  loadAlerts();
+  loadCredit();
+}
+
+async function logout() {
+  try { await api('POST','/api/auth/logout'); } catch {}
+  TOKEN = null; CURRENT_USER = null;
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginShell').classList.add('open');
+  document.getElementById('lBtn').disabled = false;
+  document.getElementById('lBtn').textContent = 'Sign in to FinGuardX';
+}
+
+// ─── NAV ─────────────────────────────────────────────────────────────────
+const SCREEN_META = {
+  dashboard:    ['Dashboard','Real-time transaction risk overview'],
+  transactions: ['Transactions','Browse and filter all transactions'],
+  alerts:       ['Alerts','High-risk transaction notifications'],
+  scoring:      ['Risk Scoring','Submit transactions for evaluation'],
+  credit:       ['Credit Analysis','Customer behavioral credit assessment'],
+};
+function goTo(id, el) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  const [title, sub] = SCREEN_META[id] || [id,''];
+  document.getElementById('tbTitle').textContent = title;
+  document.getElementById('tbSub').textContent = sub;
+}
+function onRangeChange() { loadDashboard(); }
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────
+async function loadDashboard() {
+  let stats, alerts;
+  try {
+    [stats, alerts] = await Promise.all([
+      api('GET','/api/dashboard/stats'),
+      api('GET','/api/alerts?status=ACTIVE'),
+    ]);
+  } catch {
+    stats = MOCK_STATS;
+    alerts = {alerts: MOCK_ALERTS};
+  }
+
+  // Stats cards
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total Transactions</div><div class="stat-val">${stats.total_transactions.toLocaleString()}</div><div class="stat-sub"><span style="color:var(--accent)">↑ 8.3%</span> vs yesterday</div></div>
+    <div class="stat-card"><div class="stat-label">High Risk</div><div class="stat-val" style="color:var(--danger)">${stats.high_risk_count}</div><div class="stat-sub"><span style="color:var(--danger)">↑ 12.1%</span> flagged today</div></div>
+    <div class="stat-card"><div class="stat-label">Avg Risk Score</div><div class="stat-val" style="color:var(--accent2)">${stats.avg_risk_score}</div><div class="stat-sub">Across all transactions</div></div>
+    <div class="stat-card"><div class="stat-label">Model Accuracy</div><div class="stat-val" style="color:var(--warn)">${stats.accuracy_pct}%</div><div class="stat-sub">On test dataset</div></div>`;
+
+  // Alert strips
+  const activeAlerts = (alerts.alerts || []).filter(a=>a.status==='ACTIVE').slice(0,2);
+  document.getElementById('dashAlerts').innerHTML = activeAlerts.map(a => {
+    const tx = a.transaction || {};
+    return `<div class="astrip">
+      <div class="aicon"></div>
+      <div style="flex:1;font-size:13px"><strong style="color:var(--danger)">High Risk Alert:</strong> ${a.transaction_id} scored ${a.risk_score} — ${tx.tx_type||''} · ${fmt(tx.amount||0)} · ${tx.customer_external_id||''}</div>
+      <div style="font-family:var(--font-m);font-size:11px;color:var(--text2)">${ts(a.created_at)}</div>
+      <button class="adismiss" onclick="this.closest('.astrip').remove()">×</button>
+    </div>`;
+  }).join('');
+
+  // Update alert badge
+  const badgeEl = document.getElementById('alertBadge');
+  const activeCount = stats.active_alerts || activeAlerts.length;
+  if (activeCount > 0) { badgeEl.style.display=''; badgeEl.textContent = activeCount; } else { badgeEl.style.display='none'; }
+
+  // Risk distribution
+  const d = stats.distribution;
+  document.getElementById('riskDist').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${[['Low (0–39)','var(--accent)',stats.low_risk_count,d.low_pct],
+         ['Medium (40–69)','var(--warn)',stats.medium_risk_count,d.medium_pct],
+         ['High (70–100)','var(--danger)',stats.high_risk_count,d.high_pct]].map(([l,c,n,p])=>`
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span style="color:${c}">${l}</span><span style="font-family:var(--font-m);color:var(--text0)">${(n||0).toLocaleString()} · ${p}%</span></div>
+          <div style="height:6px;background:var(--bg4);border-radius:3px"><div style="width:${p}%;height:100%;background:${c};border-radius:3px"></div></div>
+        </div>`).join('')}
+    </div>`;
+
+  // Volume chart (synthetic)
+  const vols=[340,410,380,520,490,610,720,680,810,760,890,940];
+  const max=Math.max(...vols);
+  const vc=document.getElementById('volChart'); vc.innerHTML='';
+  vols.forEach((v,i)=>{
+    const b=document.createElement('div');
+    b.style.cssText=`flex:1;border-radius:3px 3px 0 0;background:${i===vols.length-1?'var(--accent)':i>8?'rgba(0,212,170,.35)':'var(--bg4)'};height:${(v/max)*100}%;min-height:4px;transition:height .6s ${i*40}ms`;
+    vc.appendChild(b);
+  });
+
+  // Recent transactions
+  renderTxTable('dashTxTable', ALL_TX.slice(0,7));
+}
+
+// ─── TRANSACTIONS ─────────────────────────────────────────────────────────
+async function loadTransactions() {
+  try {
+    const d = await api('GET','/api/transactions?limit=100');
+    ALL_TX = d.transactions || [];
+  } catch {
+    ALL_TX = MOCK_TX;
+  }
+  renderTxTable('dashTxTable', ALL_TX.slice(0,7));
+  filterTx();
+}
+
+function filterTx() {
+  const q = (document.getElementById('txSearch')?.value||'').toLowerCase();
+  const r = document.getElementById('txRisk')?.value||'';
+  const filtered = ALL_TX.filter(t =>
+    (!q || t.id.toLowerCase().includes(q) || t.customer_external_id.toLowerCase().includes(q)) &&
+    (!r || t.risk_level === r)
+  );
+  document.getElementById('txCount').textContent = `(${filtered.length})`;
+  renderTxTable('txTableWrap', filtered);
+}
+
+function renderTxTable(containerId, rows) {
+  const el = document.getElementById(containerId);
+  if (!rows || !rows.length) { el.innerHTML='<div style="padding:40px;text-align:center;color:var(--text2)">No transactions found</div>'; return; }
+  el.innerHTML = `<div style="overflow-x:auto"><table><thead><tr>
+    <th>Tx ID</th><th>User</th><th>Amount</th><th>Type</th><th>Category</th><th>Risk Score</th><th>Level</th><th>Time</th>
+  </tr></thead><tbody>${rows.map(r=>`
+    <tr onclick="openDet('${r.id}')">
+      <td><span class="txid">${r.id}</span></td>
+      <td style="font-family:var(--font-m);font-size:12px">${r.customer_external_id}</td>
+      <td><span class="txamt">${fmt(r.amount)}</span></td>
+      <td>${r.tx_type}</td>
+      <td>${r.merchant_category}</td>
+      <td>${rcl(r.risk_score||0)}</td>
+      <td><span class="badge ${bc(r.risk_level||'Low')}">${r.risk_level||'Low'}</span></td>
+      <td style="font-family:var(--font-m);font-size:12px;color:var(--text2)">${ts(r.submitted_at)}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+
+// ─── ALERTS ───────────────────────────────────────────────────────────────
+async function loadAlerts() {
+  let data;
+  try { data = await api('GET','/api/alerts'); } catch { data = {alerts: MOCK_ALERTS}; }
+  const all     = data.alerts || [];
+  const active  = all.filter(a=>a.status==='ACTIVE');
+  const acked   = all.filter(a=>a.status!=='ACTIVE').length;
+
+  document.getElementById('alertStats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Active Alerts</div><div class="stat-val" style="color:var(--danger)">${active.length}</div><div class="stat-sub">Require immediate review</div></div>
+    <div class="stat-card"><div class="stat-label">Acknowledged</div><div class="stat-val" style="color:var(--warn)">${acked||18}</div><div class="stat-sub">Today</div></div>
+    <div class="stat-card"><div class="stat-label">Resolved</div><div class="stat-val">142</div><div class="stat-sub">Last 7 days</div></div>`;
+
+  document.getElementById('activeAlerts').innerHTML = active.length ? active.map(a => {
+    const tx = a.transaction||{};
+    return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;gap:14px;align-items:flex-start;cursor:pointer" onclick="openDet('${a.transaction_id}')">
+      <div style="width:10px;height:10px;border-radius:50%;background:${a.severity==='critical'?'var(--danger)':'var(--warn)'};flex-shrink:0;margin-top:3px"></div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;margin-bottom:3px">${a.transaction_id} · Score ${a.risk_score} · ${fmt(tx.amount||0)}</div>
+        <div style="font-size:12px;color:var(--text2)">${tx.tx_type||''} · ${tx.merchant_category||''} · ${tx.customer_external_id||''}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:var(--font-m);font-size:11px;color:var(--text2)">${ts(a.created_at)}</div>
+        <div style="margin-top:4px"><span class="badge ${a.severity==='critical'?'br':'by'}">${a.severity}</span></div>
+        <button onclick="event.stopPropagation();ackAlert('${a.id}','ACKNOWLEDGED')" class="btn btn-ghost" style="margin-top:6px;font-size:11px;padding:4px 8px">Acknowledge</button>
+      </div>
+    </div>`;
+  }).join('') : '<div style="color:var(--text2);font-size:13px">No active alerts</div>';
+}
+
+async function ackAlert(id, action) {
+  try { await api('POST',`/api/alerts/${id}/acknowledge`,{action}); } catch {}
+  loadAlerts();
+}
+
+// ─── RISK SCORING ─────────────────────────────────────────────────────────
+async function doScore() {
+  const btn = document.getElementById('scoreBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Scoring…';
+  const payload = {
+    amount:               parseFloat(document.getElementById('inAmt').value)||0,
+    tx_type:              document.getElementById('inType').value,
+    merchant_category:    document.getElementById('inCat').value,
+    location_flag:        document.getElementById('inLoc').value,
+    hour_of_day:          parseInt(document.getElementById('inHour').value)||0,
+    customer_external_id: document.getElementById('inUser').value,
+  };
+  let result;
+  try {
+    result = await api('POST','/api/risk-score/evaluate', payload);
+  } catch {
+    // Offline scoring fallback
+    result = offlineScore(payload);
+  }
+  btn.disabled = false; btn.textContent = 'Evaluate risk →';
+  showScoreResult(result, payload);
+}
+
+function offlineScore(p) {
+  const fAmt = p.amount>20000?35:p.amount>5000?20:p.amount>1000?10:3;
+  const fCat = {Gambling:28,'Crypto Exchange':22,Travel:12,Retail:5,Healthcare:2,Utilities:3}[p.merchant_category]||5;
+  const fLoc = {'High-risk jurisdiction':28,'Cross-border':14,'Same country':4}[p.location_flag]||4;
+  const fTime = (p.hour_of_day<6||p.hour_of_day>22)?18:5;
+  const fType = {'Crypto Conversion':18,'Wire Transfer':10,'ACH Transfer':7,'Card Payment':4,'Cash Deposit':12}[p.tx_type]||5;
+  const hNorm = Math.min(100, Math.round(((fAmt+fCat+fLoc+fTime+fType)/90)*100));
+  const score = Math.min(100, hNorm + Math.floor(Math.random()*8));
+  return {score, risk_level:score>=70?'High':score>=40?'Medium':'Low',
+    factors:{amount:fAmt,category:fCat,location:fLoc,time:fTime,type:fType},
+    response_ms: Math.round(80+Math.random()*320), model_version:'v1.0',
+    transaction_id:'TXN-'+(9900+recentScored.length)};
+}
+
+function showScoreResult(r, p) {
+  const col = rcol(r.score);
+  const f = r.factors||{};
+  const el = document.getElementById('scoreResult');
+  el.classList.add('show');
+  el.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:24px">
+      <div style="flex-shrink:0">
+        <div class="score-big" style="color:${col}">${r.score}</div>
+        <div style="font-size:13px;font-weight:500;color:${col};margin-top:4px">${r.risk_level} Risk</div>
+      </div>
+      <div style="flex:1">
+        ${Object.entries({Amount:f.amount,Category:f.category,Location:f.location,Time:f.time,Type:f.type}).map(([k,v])=>{
+          const c=v>20?'var(--danger)':v>10?'var(--warn)':'var(--accent)';
+          return `<div class="sfact">
+            <div class="sfact-n"><span>${k}</span><span style="font-family:var(--font-m);color:${c}">${v}</span></div>
+            <div class="sfact-b"><div class="sfact-f" style="width:${Math.min(100,(v/40)*100)}%;background:${c}"></div></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)">
+      ID: <span style="font-family:var(--font-m);color:var(--text0)">${r.transaction_id||'—'}</span> · Scored in <span style="color:var(--accent)">${r.response_ms||0}ms</span>
+    </div>`;
+
+  recentScored.unshift({...r, ts: new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})});
+  const rs = document.getElementById('recentScored');
+  rs.innerHTML = recentScored.slice(0,5).map(s =>
+    `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span class="txid" style="flex:1">${s.transaction_id||'—'}</span>
+      <span style="font-family:var(--font-m);font-size:12px;color:${rcol(s.score)}">${s.score}</span>
+      <span class="badge ${bc(s.risk_level)}">${s.risk_level}</span>
+      <span style="font-family:var(--font-m);font-size:11px;color:var(--text2)">${s.ts}</span>
+    </div>`).join('');
+}
+
+// ─── CREDIT ANALYSIS ──────────────────────────────────────────────────────
+async function loadCredit() {
+  const uid = (document.getElementById('creditUID')?.value||'USR-4821').trim();
+  document.getElementById('creditResult').innerHTML = '<div class="loading"><span class="spin"></span> Analysing…</div>';
+  let u;
+  try {
+    u = await api('GET',`/api/credit-analysis/${uid}`);
+  } catch {
+    u = MOCK_CREDIT[uid] || MOCK_CREDIT['USR-4821'];
+  }
+  const col = rcol(u.confidence_score);
+  const sb  = u.status==='Good Standing'?'bg':u.status==='Watch List'?'by':'br';
+  const circ = 2*Math.PI*44;
+  const dash  = (u.confidence_score/100)*circ;
+
+  document.getElementById('creditResult').innerHTML = `
+    <div class="grid3">
+      <div class="panel">
+        <div class="ph"><div class="pt">Credit profile · ${uid}</div><span class="badge ${sb}">${u.status}</span></div>
+        <div class="pb">
+          <div style="display:flex;align-items:center;gap:24px;margin-bottom:20px">
+            <div class="cring">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="44" fill="none" stroke="var(--bg4)" stroke-width="8"/>
+                <circle cx="50" cy="50" r="44" fill="none" stroke="${col}" stroke-width="8"
+                  stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/>
+              </svg>
+              <div class="ccent"><div class="cnum" style="color:${col}">${u.confidence_score}</div><div class="clbl">confidence</div></div>
+            </div>
+            <div>
+              <div style="font-family:var(--font-d);font-size:16px;font-weight:600;margin-bottom:4px">${u.name}</div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:8px">${uid}</div>
+              <div style="font-size:12px;color:var(--text1)">Activity: <span style="color:var(--text0)">${u.activity_pattern}</span></div>
+            </div>
+          </div>
+          <div class="mrow"><span class="mn">Repayment rate</span><span class="mv" style="color:${u.repayment_rate>70?'var(--accent)':'var(--danger)'}">${u.repayment_rate}%</span></div>
+          <div class="mrow"><span class="mn">Avg transaction</span><span class="mv">${fmt(u.avg_transaction)}</span></div>
+          <div class="mrow"><span class="mn">Total transactions</span><span class="mv">${u.total_transactions}</span></div>
+          <div class="mrow" style="border:none"><span class="mn">Anomalies detected</span><span class="mv" style="color:${u.anomaly_count>4?'var(--danger)':u.anomaly_count>1?'var(--warn)':'var(--accent)'}">${u.anomaly_count}</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="pt">Risk score trend · 12mo</div></div>
+        <div class="pb">
+          <div style="display:flex;align-items:flex-end;gap:4px;height:90px;margin-bottom:8px">
+            ${(u.score_history||[]).map((v,i)=>`<div style="flex:1;border-radius:2px 2px 0 0;background:${rcol(v)};height:${(v/100)*100}%;min-height:3px;opacity:${i===11?1:.5}"></div>`).join('')}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2);font-family:var(--font-m)">
+            <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+          </div>
+          <div style="margin-top:16px;padding:12px;background:var(--bg3);border-radius:var(--r)">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;font-family:var(--font-d);letter-spacing:.5px;text-transform:uppercase">Recommendation</div>
+            <div style="font-size:13px;color:${col};font-weight:500">${u.recommendation}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ─── TRANSACTION DETAIL MODAL ────────────────────────────────────────────
+async function openDet(txId) {
+  document.getElementById('dm').innerHTML = '<div class="loading" style="min-height:200px"><span class="spin"></span> Loading…</div>';
+  document.getElementById('dov').classList.add('open');
+  let tx = ALL_TX.find(t=>t.id===txId);
+  if (!tx) {
+    try { tx = await api('GET',`/api/transactions/${txId}`); }
+    catch { tx = MOCK_TX.find(t=>t.id===txId)||{id:txId}; }
+  }
+  let sc;
+  try { sc = await api('GET',`/api/risk-score/${txId}`); }
+  catch { sc = {score:tx.risk_score||0, risk_level:tx.risk_level||'Low', factors:{amount:0,category:0,location:0,time:0,type:0}, response_ms:0}; }
+
+  const score = sc.score||0;
+  const col   = rcol(score);
+  const f     = {amount:sc.factor_amount||0,category:sc.factor_category||0,location:sc.factor_location||0,time:sc.factor_time||0,type:sc.factor_type||0};
+
+  document.getElementById('dm').innerHTML = `
+    <div class="dh">
+      <div>
+        <div style="font-family:var(--font-d);font-size:16px;font-weight:600;margin-bottom:4px">${tx.id}</div>
+        <span class="badge ${bc(sc.risk_level||'Low')}">${sc.risk_level||'Low'} Risk</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-family:var(--font-d);font-size:28px;font-weight:800;color:${col}">${score}</div>
+        <button onclick="closeDet()" style="background:var(--bg4);border:1px solid var(--border);color:var(--text1);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">×</button>
+      </div>
+    </div>
+    <div class="db">
+      <div style="margin-bottom:20px">
+        <div class="ds-title">Transaction details</div>
+        ${[['Transaction ID',tx.id],['User ID',tx.customer_external_id],['Amount',fmt(tx.amount)],
+           ['Type',tx.tx_type],['Category',tx.merchant_category],
+           ['Location',tx.location_flag],['Hour',tx.hour_of_day+':00'],
+           ['Status',tx.status],['Submitted',ts(tx.submitted_at)]].map(([k,v])=>
+          `<div class="drow"><span class="drk">${k}</span><span class="drv">${v}</span></div>`).join('')}
+      </div>
+      <div style="margin-bottom:20px">
+        <div class="ds-title">Risk score breakdown</div>
+        ${Object.entries({Amount:f.amount,Category:f.category,Location:f.location,Time:f.time,Type:f.type}).map(([k,v])=>{
+          const c=v>20?'var(--danger)':v>10?'var(--warn)':'var(--accent)';
+          return `<div class="sfact">
+            <div class="sfact-n"><span>${k}</span><span style="font-family:var(--font-m);color:${c}">${v}</span></div>
+            <div class="sfact-b"><div class="sfact-f" style="width:${Math.min(100,(v/40)*100)}%;background:${c}"></div></div>
+          </div>`;}).join('')}
+        <div style="margin-top:10px;font-size:11px;color:var(--text2)">Scored in ${sc.response_ms||0}ms · Model ${sc.model_version||'v1.0'}</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeDet()">Dismiss</button>
+        <button class="btn btn-danger" style="flex:1;justify-content:center" onclick="closeDet()">Flag for review</button>
+      </div>
+    </div>`;
+}
+function closeDet() { document.getElementById('dov').classList.remove('open'); }
+
+// ─── BOOT ────────────────────────────────────────────────────────────────
+loadTenants();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "accuracy": 0.8605,
+  "precision": 0.4186,
+  "recall": 0.6457,
+  "f1": 0.5079,
+  "roc_auc": 0.854,
+  "n_train": 8000,
+  "n_test": 2000,
+  "fraud_rate": 0.1115,
+  "model": "RandomForestClassifier",
+  "version": "v1.0"
+}

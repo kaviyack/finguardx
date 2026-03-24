@@ -1,0 +1,75 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+
+# ── Java / Maven ──────────────────────────────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/
+!.mvn/wrapper/maven-wrapper.properties
+.classpath
+.project
+.settings/
+*.iml
+*.iws
+*.ipr
+.idea/
+
+# ── ML Models (large binaries — tracked via Git LFS or excluded) ──────────────
+# Comment these out if you want to include pre-trained models in the repo
+# risk-engine/model/*.joblib
+# backend/model/*.joblib
+
+# ── Datasets (never commit real financial data) ────────────────────────────────
+risk-engine/data/synthetic_cc_fraud.csv
+risk-engine/data/synthetic_loan.csv
+# If you have real Kaggle data, these MUST be excluded:
+risk-engine/data/creditcard.csv
+risk-engine/data/credit_risk_dataset.csv
+
+# ── Secrets / Environment ─────────────────────────────────────────────────────
+.env
+*.env.local
+*.env.production
+secrets.yml
+application-prod.properties
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+.dockerignore
+
+# ── Node / Frontend build ─────────────────────────────────────────────────────
+node_modules/
+dist/
+.next/
+.nuxt/
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+*.suo
+*.user
+
+# ── Test artifacts ────────────────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+*.log

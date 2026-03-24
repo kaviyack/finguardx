@@ -1,0 +1,76 @@
+version: "3.9"
+
+# FinGuardX — Docker Compose
+# Services: frontend (nginx), backend (Flask/Python), database (PostgreSQL)
+# Run: docker-compose up --build
+
+services:
+
+  # ─── PostgreSQL Database ─────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: finguardx-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       finguardx
+      POSTGRES_USER:     finguardx
+      POSTGRES_PASSWORD: finguardx_secret
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finguardx -d finguardx"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Python Backend (Flask + Risk Engine) ────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: finguardx-backend
+    restart: unless-stopped
+    environment:
+      JWT_SECRET:       ${JWT_SECRET:-finguardx-secret-change-in-prod}
+      DB_HOST:          db
+      DB_PORT:          5432
+      DB_NAME:          finguardx
+      DB_USER:          finguardx
+      DB_PASSWORD:      finguardx_secret
+      FLASK_ENV:        production
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - model_data:/app/model
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ─── Frontend (Nginx serving static files) ───────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: finguardx-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      API_URL: http://backend:8080
+
+volumes:
+  pg_data:
+  model_data:
