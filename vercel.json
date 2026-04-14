@@ -1,0 +1,8 @@
+{
+  "buildCommand": "echo 'No build needed - static SPA'",
+  "outputDirectory": ".",
+  "public": false,
+  "env": {
+    "API_BASE": "@api_base"
+  }
+}
