@@ -1,5 +1,5 @@
 {
   "buildCommand": "echo 'No build needed - static SPA'",
-  "outputDirectory": ".",
+  "outputDirectory": "frontend",
   "public": false
 }
